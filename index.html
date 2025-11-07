@@ -1302,7 +1302,7 @@
             currentQuestion.options.forEach((option, index) => {
                 const button = document.createElement('button');
                 button.textContent = option;
-                button.classList.add('option-btn', 'w-full', 'p-4', 'bg-red-200', 'text-gray-800', 'font-semibold', 'rounded-lg', 'shadow-sm', 'hover:bg-red-300', 'text-left', 'hover:border-red-500');
+                button.classList.add('option-btn', 'w-full', 'p-4', 'text-gray-800', 'font-semibold', 'rounded-lg', 'shadow-sm', 'hover:bg-red-300', 'text-left', 'hover:border-red-500');
                 
                 // Adiciona o evento de clique
                 button.addEventListener('click', () => selectAnswer(index));
