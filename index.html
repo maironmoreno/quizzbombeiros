@@ -1,0 +1,1404 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quiz Bombeiros CBMRS</title>
+    <!-- 1. Carregamento do TailwindCSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* 2. Estilos personalizados */
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        /* Classe para a opção correta selecionada */
+        .option-btn.correct {
+            background-color: #16a34a; /* green-600 */
+            color: white;
+            border-color: #15803d; /* green-700 */
+        }
+        /* Classe para a opção errada selecionada */
+        .option-btn.incorrect {
+            background-color: #dc2626; /* red-600 */
+            color: white;
+            border-color: #b91c1c; /* red-700 */
+        }
+        /* Classe para mostrar a resposta correta quando o usuário erra */
+        .option-btn.show-correct {
+            background-color: #16a34a; /* green-600 */
+            color: white;
+            border: 2px solid #15803d; /* green-700 */
+        }
+        /* Estilo para o botão de opção padrão */
+        .option-btn {
+            transition: all 0.2s ease-in-out;
+            border: 2px solid #e5e7eb; /* gray-200 */
+        }
+        /* Desabilitando o hover de outros botões após a resposta */
+        .options-disabled .option-btn:not(.correct):not(.incorrect):not(.show-correct):hover {
+            background-color: #fca5a5; /* red-300 */
+            border-color: #ef4444; /* red-500 */
+        }
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen flex items-center justify-center p-4">
+
+    <div class="bg-white w-full max-w-2xl rounded-2xl shadow-2xl overflow-hidden">
+        
+        <!-- Cabeçalho do Quiz -->
+        <header class="bg-gray-900 text-white p-6 shadow-md">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center space-x-3">
+                    <!-- Ícone de Chama (Tema Bombeiro) -->
+                    <svg class="w-10 h-10 text-red-500" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" d="M12.316 3.051a1 1 0 01.633 1.265l-4 12a1 1 0 11-1.898-.632l4-12a1 1 0 011.265-.633zM10 18a1 1 0 01.707.293l2 2a1 1 0 11-1.414 1.414l-2-2A1 1 0 0110 18zm-6.707-4.293a1 1 0 010-1.414l2-2a1 1 0 111.414 1.414l-2 2a1 1 0 01-1.414 0z" clip-rule="evenodd"></path><path d="M10.263 3.095a1 1 0 01.684 1.246l-2.5 10a1 1 0 11-1.894-.473l2.5-10a1 1 0 011.21-.773zM6 18a1 1 0 01.707.293l2 2a1 1 0 11-1.414 1.414l-2-2A1 1 0 016 18z"></path><path d="M16 10a1 1 0 01-1-1V6a1 1 0 112 0v3a1 1 0 01-1 1z"></path></svg>
+                    <h1 class="text-2xl font-bold text-gray-100">Quiz CBMRS - Eixo 4</h1>
+                </div>
+                <div class="text-right">
+                    <div id="score" class="text-lg font-semibold text-yellow-400">Pontos: 0</div>
+                    <div id="progress" class="text-sm text-gray-400">Questão 1 de 97</div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Container Principal do Quiz -->
+        <main id="quiz-container" class="p-6 md:p-8">
+            <div id="question-header" class="mb-5">
+                <h2 id="question-number" class="text-xl md:text-2xl font-bold text-red-600 mb-2"></h2>
+            </div>
+            <p id="question-text" class="text-lg md:text-xl text-gray-800 leading-relaxed mb-6"></p>
+            
+            <!-- Opções de Resposta -->
+            <div id="answer-options" class="flex flex-col space-y-3">
+                <!-- As opções serão inseridas aqui pelo JavaScript -->
+            </div>
+        </main>
+
+        <!-- Rodapé com Botão -->
+        <footer id="quiz-footer" class="p-6 bg-gray-50 border-t border-gray-200">
+            <button id="next-button" class="w-full bg-gray-700 text-white text-lg font-bold py-3 px-6 rounded-lg shadow-md hover:bg-gray-800 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed" style="display: none;">
+                Próxima Pergunta
+            </button>
+        </footer>
+
+        <!-- Tela de Resultados (Oculta por padrão) -->
+        <div id="results-container" class="p-8 md:p-10 text-center" style="display: none;">
+            <h2 class="text-3xl font-bold text-red-600 mb-4">Quiz Finalizado!</h2>
+            <div class="bg-gray-100 p-6 rounded-lg shadow-inner mb-6">
+                <div class="text-lg text-gray-700">Sua pontuação final é:</div>
+                <div id="final-score" class="text-6xl font-extrabold text-gray-900 my-3">0 / 0</div>
+                <div id="final-percentage" class="text-2xl font-semibold text-yellow-600">0%</div>
+            </div>
+            <button id="restart-button" class="w-full md:w-auto bg-red-600 text-white text-lg font-bold py-3 px-10 rounded-lg shadow-lg hover:bg-red-700 transition-colors duration-200">
+                Reiniciar Quiz
+            </button>
+        </div>
+    </div>
+
+    <!-- 3. Lógica do Quiz (JavaScript) -->
+    <script>
+        // --- INÍCIO: BANCO DE DADOS DAS QUESTÕES ---
+        // Extraído e formatado do "Banco de questões - Eixo 4 - até 24jun2024 - com respostas.pdf"
+        const quizData = [
+            // 1. Segurança Contra Incêndio
+            {
+                id: "Questão 01",
+                question: "São de inteira responsabilidade do proprietário e do responsável pelo uso da edificação: (aqui deveria ter um \"exceto\" mas não tem)",
+                options: [
+                    "Utilizar a edificação ou área de risco de incêndio para o fim que foi declarado",
+                    "Garantir que as instalações prediais ofereçam iminente risco de incêndio e à vida",
+                    "Providenciar o dimensionamento e a instalação das medidas de segurança contra incêndio de acordo com o Anexo \"G\", utilizando materiais, equipamentos de segurança contra incêndio certificados por órgão acreditados",
+                    "Providenciar a manutenção das medidas de segurança contra incêndio instaladas e equipamentos que possam causar risco de incêndio ou risco à vida",
+                    "Prestar as informações corretas para instrução do PSPCI"
+                ],
+                correct: 1 // Gabarito: B
+            },
+            {
+                id: "Questão 02",
+                question: "A Lei Estadual nº 14.376, de 26 de dezembro de 2013 e suas alterações, apresenta que as edificações e áreas de risco de incêndio deverão possuir Alvará de Prevenção e Proteção Contra Incêndios - APPCI-, expedido pelo CBMRS. Porém, algumas edificações estão dispensadas do Alvará, sendo caracterizadas como edificações de baixo risco. Dentre as alternativas abaixo, assinale a que não apresenta uma medida de segurança obrigatória para estas edificações:",
+                options: [
+                    "Saídas de emergência",
+                    "Iluminação de emergência",
+                    "Extintores de incêndio",
+                    "Alarme de incêndio",
+                    "Sinalização de emergência"
+                ],
+                correct: 3 // Gabarito: D
+            },
+            {
+                id: "Questão 03",
+                question: "Para a correta compreensão da norma de saída de emergência, se faz necessário conhecer as seguintes definições, conforme a Resolução Técnica CBMRS n.º 11, Parte 01/2016, EXCETO:",
+                options: [
+                    "Local seguro",
+                    "Unidade dependente",
+                    "Espaço livre exterior térreo",
+                    "Saída de emergência",
+                    "Espaço livre exterior"
+                ],
+                correct: 1 // Gabarito: B
+            },
+            {
+                id: "Questão 04",
+                question: "Para a correta compreensão do sistema de hidrantes mangotinhos, faz-se necessário conhecer as seguintes definições previstas na norma ABNT NBR 13714, EXCETO:",
+                options: [
+                    "Bomba principal",
+                    "Bomba de reforço",
+                    "Abrigo",
+                    "Bomba de pressurização (Jockey)",
+                    "Bomba de ignição"
+                ],
+                correct: 4 // Gabarito: E
+            },
+            {
+                id: "Questão 05",
+                question: "Assinale a alternativa correta sobre as nomenclaturas quanto ao grau de risco de incêndio:",
+                options: [
+                    "Risco baixíssimo, médio e altíssimo",
+                    "Risco impossível, possível e muito possível",
+                    "Risco incerto, provável e alto",
+                    "Risco baixo, médio e alto",
+                    "Risco pequeno, médio e grande"
+                ],
+                correct: 3 // Gabarito: D
+            },
+            {
+                id: "Questão 06",
+                question: "Conforme o Decreto nº 51.803/2014 e suas alterações, há circunstâncias AGRAVANTES e ATENUANTES na aplicação da pena de multa. Assinale a alternativa que indique a sentença INCORRETA:",
+                options: [
+                    "É circunstância agravante a reincidência no cometimento de infrações de qualquer natureza no período de cinco anos",
+                    "É circunstância atenuante a condição de microempreendedor individual, microempresa ou empresa de pequeno porte",
+                    "É circunstância agravante o cometimento de infrações em ocupações predominantes das divisões F-6, F-7, 1-3, J-4, M-2 e do grupo L",
+                    "A consequência da circunstância agravante é a redução da pena de multa em 50%",
+                    "A consequência da agravante é a aplicação da pena de multa com o dobro do valor"
+                ],
+                correct: 3 // Gabarito: D
+            },
+            {
+                id: "Questão 07",
+                question: "São requisitos básicos para enquadramento da edificação ou área de risco em Plano Simplificado de Prevenção e Proteção contra Incêndio (PSPCI):",
+                options: [
+                    "Ter classificação com grau de risco de incêndio baixo ou médio, área total edificada de até 1000 m² e até 3 (três) pavimentos",
+                    "Ter classificação com grau de risco de incêndio baixo ou médio, área total edificada de até 750 m² e até 3 (três) pavimentos",
+                    "Ter classificação com grau de risco de incêndio médio ou alto, área total edificada de até 750 m² e até 4 (três) pavimentos",
+                    "Ter classificação com grau de risco de incêndio médio ou alto, área total edificada de até 750 m² e até 3 (três) pavimentos",
+                    "Ter classificação com grau de risco de incêndio baixo ou médio, área total edificada de até 750 m² e até 2 (três) pavimentos"
+                ],
+                correct: 1 // Gabarito: B
+            },
+            {
+                id: "Questão 08",
+                question: "Por ocasião da vistoria do acesso de viaturas nas edificações e áreas de risco de incêndio, o CBMRS verificará o correto preenchimento do Memorial Descritivo de Vistoria para Segurança Contra Incêndio MDVSCI (Anexo \"E\" ou \"El\" da Resolução Técnica CBMRS n.° 05, Parte 1.1/2016). No local, o acesso de viaturas na edificação será verificado de acordo com o PPCI aprovado quanto:",
+                options: [
+                    "Localização e dimensões dos acessos",
+                    "Largura dos acessos internos, quando obrigatórios",
+                    "Obstrução do acesso",
+                    "Desobstrução do acesso",
+                    "Verificação da localização do dispositivo de recalque e da(s) tomada(s) de hidrante, quando utilizados"
+                ],
+                correct: 2 // Gabarito: C
+            },
+            {
+                id: "Questão 09",
+                question: "Conforme prevê a Lei Complementar nº 14.376/2013 e suas alterações, a renovação do APPCI deverá ser protocolada com, no mínimo:",
+                options: [
+                    "5 (cinco) meses de antecedência",
+                    "1 (um) mês de antecedência",
+                    "3 (três) meses de antecedência",
+                    "2 (dois) meses de antecedência",
+                    "4 (quatro) meses de antecedência"
+                ],
+                correct: 3 // Gabarito: D
+            },
+            {
+                id: "Questão 10",
+                question: "A tramitação do Plano de Prevenção e Proteção contra Incêndio (PPCI) se dará nas seguintes fases:",
+                options: [
+                    "Cadastro, Licenciamento e Licença contra Incêndio",
+                    "Protocolo, Análise e Vistoria",
+                    "Registro, Análise e Vistoria",
+                    "Registro, Verificação Documental e Expedição de Licença",
+                    "Cadastro, Exame e Inspeção"
+                ],
+                correct: 1 // Gabarito: B
+            },
+            {
+                id: "Questão 11",
+                question: "No processo de aplicação das penalidades e as sanções administrativas, através do AUTO DE IMPOSIÇÃO DE PENALIDADE, pelo descumprimento da legislação de Segurança contra Incêndio existem circunstâncias que podem agravar ou atenuar a penalidade imposta. A circunstância atenuante é a condição de microempreendedor individual (MEI), microempresa (ME) ou empresa de pequeno porte (EPP). Neste sentido, o que implica esta circunstância:",
+                options: [
+                    "A pena de multa será reduzida em 10%",
+                    "A pena de multa será reduzida em 20%",
+                    "A pena de multa será reduzida em 50%",
+                    "A pena de multa será reduzida em 60%",
+                    "A pena de multa será reduzida em 80%"
+                ],
+                correct: 2 // Gabarito: C
+            },
+            {
+                id: "Questão 12",
+                question: "A norma técnica que regulamenta os procedimentos administrativos de fiscalização no estado do Rio Grande do Sul é a Resolução Técnica CBMRS nº 05 - Parte 6/2023. O responsável pela execução das ações fiscalizatórias no CBMRS é o ________ que é todo bombeiro militar que realizar atividade fiscalizatória em operação de fiscalização, atendimento de ocorrência ou, estando nominalmente escalado para o serviço ou expediente, em qualquer atividade administrativa analise ou operacional, se deparar com irregularidade em matéria de segurança contra incêndio em edificação ou área de risco. Assinale a alternativa que preenche corretamente a lacuna no texto:",
+                options: [
+                    "Fiscal",
+                    "Inspecionante",
+                    "Bombeiro educador",
+                    "Agente fiscalizador",
+                    "Vistoriante"
+                ],
+                correct: 3 // Gabarito: D
+            },
+            {
+                id: "Questão 13",
+                question: "Os grandes incêndios tiveram influência direta na edição de normas sobre segurança contra incêndios. Relacione as colunas abaixo de acordo com o ano e seu respectivo incêndio: (1) 1961 (2) 1972 (3) 1974 (4) 1976 (5) 2013 (5) Boate Kiss 2013 (2) Edificio Andraus 1972 (3) Edificio Joelma 1974 (4) Lojas Renner 1974 (1) Gran Circo Norte Americano 1961",
+                options: [
+                    "5-2-1-3-4",
+                    "5-4-3-1-2",
+                    "5-2-3-4-1",
+                    "3-2-4-5-1",
+                    "4-3-2-1-5"
+                ],
+                correct: 2 // Gabarito: C
+            },
+            {
+                id: "Questão 14",
+                question: "A regulamentação de Segurança Contra Incêndios no âmbito do Estado do RS, surgiu em 1997 com a publicação da primeira legislação (Lei Estadual 10.987, de 11 de agosto de 1997) que estabeleceu normas sobre sistemas de prevenção e proteção contra incêndios no Estado do Rio Grande do Sul. Qual evento (incêndio) ocorreu ocorrido tem relação com a edição da referida norma?",
+                options: [
+                    "Mercado Público",
+                    "Lojas Renner",
+                    "Edifício Cacique",
+                    "Boate Kiss",
+                    "SSP"
+                ],
+                correct: 2 // Gabarito: C
+            },
+            {
+                id: "Questão 15",
+                question: "O Decreto Estadual 51.803/2014, traz em seu artigo 35-B a competência para que o Corpo de Bombeiros Militar do RS defina por meio de Resolução Técnica, os procedimentos para realização de análise e vistorias \"Art. 35-B. O CBMRS definirá por meio de RTCBMRS os procedimentos para análise, vistoria ordinária e vistoria extraordinária, (...)\". Qual o dispositivo que define estes procedimentos?",
+                options: [
+                    "Anexo B da Resolução Técnica nº 05 - Parte 3.1/2016",
+                    "Anexo I da Resolução Técnica nº 05 - Parte 1.1/2016",
+                    "Anexo A da Resolução Técnica nº 05 - Parte 2/2023",
+                    "Anexo L da Resolução Técnica nº 05 - Parte 1.1/2016",
+                    "Anexo O da Resolução Técnica nº 05 - Parte 3.1/2016"
+                ],
+                correct: 3 // Gabarito: D
+            },
+            {
+                id: "Questão 16",
+                question: "A NBR 13714 (hidrantes e mangotinhos) apresenta que o comprimento total das mangueiras que servem cada saída a um ponto de hidrante ou mangotinho deve ser suficiente para vencer todos os desvios e obstáculos que existem, considerando também toda a influência que a ocupação final é capaz de exercer, não excedendo os limites estabelecidos na tabela 1. Qual o comprimento máximo das mangueiras estabelecido nas tabelas para hidrantes dentro das edificações?",
+                options: [
+                    "30 metros",
+                    "45 metros",
+                    "60 metros",
+                    "15 metros",
+                    "90 metros"
+                ],
+                correct: 0 // Gabarito: A
+            },
+            {
+                id: "Questão 17",
+                question: "A Lei complementar 14.376/2013 estabeleceu, normas sobre Segurança, Prevenção e Proteção contra Incêndio, competências, atribuições, fiscalizações e sanções administrativas decorrentes do seu descumprimento. Assinale a alternativa que não apresenta um objetivo estabelecido no artigo 2º da referida legislação:",
+                options: [
+                    "estabelecer um conjunto de medidas eficientes de prevenção contra incêndio",
+                    "determinar as advertências nos casos de descumprimento desta Lei Complementar",
+                    "dificultar a propagação do incêndio, preservando a vida, reduzindo danos ao meio ambiente e ao patrimônio",
+                    "preservar e proteger a vida dos ocupantes das edificações e áreas de risco, em caso de incêndio",
+                    "dar condições de acesso para as operações do Corpo de Bombeiros Militar do Estado Rio Grande do Sul CBMRS"
+                ],
+                correct: 1 // Gabarito: B
+            },
+            {
+                id: "Questão 18",
+                question: "Assinale a alternativa que apresenta o sistema de licenciamento utilizado pelo CBMRS onde os dados são inseridos de forma eletrônica:",
+                options: [
+                    "CBMRS DIGITAL",
+                    "SISBOM-MSCI",
+                    "SISBOM",
+                    "PPCI FÁCIL",
+                    "SOL-CBMRS"
+                ],
+                correct: 4 // Gabarito: E
+            },
+            {
+                id: "Questão 19",
+                question: "A expedição do Alvará de Prevenção e Proteção contra Incêndio (APPCI) para edificações e/ou áreas de riscos enquadradas como PSPCI é dispensada de:",
+                options: [
+                    "Inserção dos dados gerais da edificação ou área de risco de incêndio e das características da edificação ou área de risco de incêndio no sistema",
+                    "Vistoria ordinária",
+                    "Acesso eletrônico",
+                    "Pagamento de taxa única de análise e emissão de APPCI ou upload do documento comprobatório de isenção",
+                    "Inserção das informações referentes ao proprietário e responsável pelo uso da edificação no sistema"
+                ],
+                correct: 1 // Gabarito: B
+            },
+            {
+                id: "Questão 20",
+                question: "A iluminação de emergência é a iluminação que deve clarear as áreas com pessoas presentes, passagens horizontais e verticais para saídas de emergência, áreas técnicas de controle de restabelecimento de serviços essenciais na edificação na falta ou falha no fornecimento de energia elétrica. É dividida em: iluminação de emergência de ________ e iluminação de emergência de ________. Assinale a nomenclatura correta:",
+                options: [
+                    "rota continuada e aclaramento",
+                    "balizamento e rota continuada",
+                    "referência e aclaramento",
+                    "feixe luminoso e luz alta",
+                    "aclaramento e balizamento"
+                ],
+                correct: 4 // Gabarito: E
+            },
+            {
+                id: "Questão 21",
+                question: "O Licenciamento consiste na regularização destas edificações através da emissão deste Alvará de Prevenção e Proteção Contra Incêndio - APPCI. No Rio Grande do Sul, para obtenção do APPCI, existem dois processos, que são determinados de acordo com as características da edificação e área de risco de incêndio. Quais são estes processos?",
+                options: [
+                    "APPCI e PSCI",
+                    "RISCO BAIXO e PPCI",
+                    "APPCI e PPCI",
+                    "PPCI e PSPCI",
+                    "PSPCI e RISCO BAIXO"
+                ],
+                correct: 3 // Gabarito: D
+            },
+            {
+                id: "Questão 22",
+                question: "O ano de 2016 foi marcado pela mudança drástica dos procedimentos legais e administrativos na regulamentação da Segurança Contra Incêndios no RS. Assinale a alternativa que representa uma das principais mudanças ocorridas:",
+                options: [
+                    "burocratização do sistema de licenciamento",
+                    "aumento de prazos para análise e vistoria de PPCI",
+                    "responsabilização do bombeiro militar",
+                    "definição das responsabilidades entre cada ente integrante do sistema de segurança contra incêndios",
+                    "insegurança jurídica nos procedimentos administrativos"
+                ],
+                correct: 3 // Gabarito: D
+            },
+            {
+                id: "Questão 23",
+                question: "Conforme estudado na disciplina, a edição de normas relacionadas à segurança contra incêndios estão vinculadas a grandes tragédias. Das alternativas abaixo, qual incêndio ocorrido em 1976 que levou a edição da primeira legislação sobre incêndio no município de Porto Alegre em 1977?",
+                options: [
+                    "Edificio Joelma",
+                    "Boate Kiss",
+                    "Lojas Renner",
+                    "Edificio Andraus",
+                    "Gran Circo Norte Americano"
+                ],
+                correct: 2 // Gabarito: C
+            },
+            {
+                id: "Questão 24",
+                question: "De acordo com a Resolução Técnica nº 11 Parte 1/2016, as portas das salas com capacidade acima de ________ pessoas deverão abrir no sentido do trânsito de saída.",
+                options: [
+                    "100",
+                    "50",
+                    "20",
+                    "200",
+                    "10"
+                ],
+                correct: 1 // Gabarito: B
+            },
+            {
+                id: "Questão 25",
+                question: "Tipo de escada sem antecâmara, que tem suas caixas isoladas por paredes resistentes a 120 minutos de fogo, no mínimo, e que as portas de acesso a esta caixa de escada do tipo corta-fogo (PCF), com resistência ao fogo de 60 minutos (P-60)",
+                options: [
+                    "Escada Enclausurada à Prova de Fumaça Pressurizada- PFP",
+                    "Escada Não Enclausurada - NE",
+                    "Escada Enclausurada à Prova de Fumaça - PF",
+                    "Escada Aberta Externa - AE",
+                    "Escada Enclausurada Protegida - EP"
+                ],
+                correct: 4 // Gabarito: E
+            },
+            {
+                id: "Questão 26",
+                question: "Os extintores portáteis devem ser instalados nas seguintes condições: a) sua alça deve estar no máximo a ________ do piso; ou b) o fundo deve estar no mínimo a ________ do piso, mesmo que apoiado em suporte.",
+                options: [
+                    "1,60 m e 0,10 m",
+                    "1,80 m e 0,10 m",
+                    "1,50 m e 0,10 m",
+                    "1,50 m e 0,20 m",
+                    "1,80 m e 0,20 m"
+                ],
+                correct: 0 // Gabarito: A
+            },
+            {
+                id: "Questão 27",
+                question: "A Lei complementar 14376/2013 deu competência para o CBMRS realizar vistorias de acordo com a ocupação e uso das edificações. Dentre as alternativas abaixo, assinale o tipo de vistoria realizada por ocasião da liberação e da renovação do APPCI.",
+                options: [
+                    "vistoria de fiscalização",
+                    "vistoria extraordinária",
+                    "vistoria de inspeção",
+                    "vistoria de liberação",
+                    "vistoria ordinária"
+                ],
+                correct: 4 // Gabarito: E
+            },
+            {
+                id: "Questão 28",
+                question: "Considere a seguinte situação hipotética: A construtora Tasca acaba de finalizar uma construção de uma edificação que funcionará como uma Igreja (F-2), com carga de incêndio de 300 MJ/m² (risco baixo). Após todos os trâmites de licenciamento junto ao CBMRS a edificação recebeu seu Alvará de Prevenção e Proteção Contra Incêndios - APPCI. De acordo com a Lei 14.376/2013, qual a validade do APPCI emitido?",
+                options: [
+                    "5 anos",
+                    "7 anos",
+                    "3 anos",
+                    "1 ano",
+                    "2 anos"
+                ],
+                correct: 0 // Gabarito: A
+            },
+            {
+                id: "Questão 29",
+                question: "Um dos principais aspectos importantes do processo de licenciamento por PPCI é o compartilhamento de responsabilidades entre os entes do processo que são: Corpo de Bombeiros Militar do RS, proprietário, responsável pelo uso da edificação e responsável técnico. A Resolução Técnica CBMRS nº 05 - Parte 1.1/2016, estabelece em seu item 9.4.1 que: \"É de responsabilidade do CBMRS a análise e vistoria das medidas de segurança contra incêndio, exclusivamente em seus requisitos de operação, elencados nas colunas \"A\" e \"B\" das tabelas \"L.1\", \"L.2\" e \"L.3\", do Anexo \"L\" desta RTCBMRS. Assinale a alternativa correta em relação a estes procedimentos:",
+                options: [
+                    "A vistoria será realizada de acordo com o estabelecido no Anexo L juntamente com o que o vistoriante achar importante.",
+                    "na análise do PPCI, a analista poderá requerer demonstrações de cálculo hidráulico ou dos projetos integrantes do sistema de hidrantes, mesmo sem previsão no Anexo L.",
+                    "na vistoria ordinária, o bombeiro militar vistoriante deverá verificar tudo o que ele achar que seja importante.",
+                    "é procedimento errado exigir elementos e informações diversas do previsto na coluna A do Anexo L.",
+                    "cabe ao analista do PPCI verificar o que ele julgar importante para a análise do PPCI."
+                ],
+                correct: 3 // Gabarito: D
+            },
+            {
+                id: "Questão 30",
+                question: "E o documento que dá ciência ao infrator ou ao seu preposto de que foi cometida uma infração, em decorrência do descumprimento de norma de segurança contra incêndio, abrindo prazo para a apresentação de Defesa Administrativa e, posteriormente, Recurso Administrativo.",
+                options: [
+                    "Auto de infração",
+                    "Auto de sanção",
+                    "Auto de advertência",
+                    "Auto de repreensão",
+                    "Auto de multa"
+                ],
+                correct: 0 // Gabarito: A
+            },
+            {
+                id: "Questão 31",
+                question: "Analise o seguinte conceito: \"são o conjunto de dispositivos ou sistemas a serem instalados nas edificações e áreas de risco de incêndio, necessário para EVITAR o surgimento de um incêndio, LIMITAR sua propagação, POSSIBILITAR sua extinção e ainda PROPICIAR a proteção à vida, ao meio ambiente e ao patrimônio.\". Este conceito refere-se a:",
+                options: [
+                    "compartimentação vertical",
+                    "saídas de emergência",
+                    "medidas de segurança",
+                    "sistemas preventivos",
+                    "buscas e salvamentos"
+                ],
+                correct: 2 // Gabarito: C
+            },
+            {
+                id: "Questão 32",
+                question: "Tipo de sinalização que visa indicar as rotas de fuga que compõe a saída de emergência e as ações necessárias para o seu acesso e uso:",
+                options: [
+                    "Saída de Emergência",
+                    "Orientação e Salvamento",
+                    "Rotas de fuga continuada",
+                    "Complementar",
+                    "Alerta"
+                ],
+                correct: 1 // Gabarito: B
+            },
+            {
+                id: "Questão 33",
+                question: "A Resolução Técnica nº 14/2016 prevê que é permitida a instalação de uma única unidade extintora de pó ABC em algumas edificações: a) Em edificações, área de risco de incêndio, mezaninos e pavimentos com área construída inferior a ________ desde que atendida à capacidade extintora mínima prevista para o tipo de risco;",
+                options: [
+                    "50 m²",
+                    "20 m²",
+                    "100 m²",
+                    "200 m²",
+                    "10 m²"
+                ],
+                correct: 0 // Gabarito: A
+            },
+            // 2.A Setor Pessoal
+            {
+                id: "Questão 1 (Setor Pessoal)",
+                question: "É o período pré-determinado através do qual busca-se avaliar o desempenho e as qualidades necessárias do militar para a sua manutenção efetiva no cargo. Trata-se do conceito de:",
+                options: [
+                    "Estágio Proibido;",
+                    "Estabilidade;",
+                    "Estágio Probatório;",
+                    "Estágio Programado;",
+                    "Instabilidade;"
+                ],
+                correct: 2 // Gabarito: C
+            },
+            {
+                id: "Questão 2 (Setor Pessoal)",
+                question: "Sobre o ingresso no CBMRS, assinale a alternativa que preenche as lacunas corretamente: O ingresso nas Qualificações Policiais-Militares dar-se-á na graduação de ________ após aprovação em concurso público e no respectivo Curso de Formação, por ato do ________.",
+                options: [
+                    "Soldado Nível III, Governador do Estado",
+                    "Soldado Nível II, Governador do Estado",
+                    "Soldado Nível II, Comandante Geral",
+                    "Soldado Nível I, Governador do Estado",
+                    "Soldado Nível III, Subcomandante Geral"
+                ],
+                correct: 0 // Gabarito: A (Nota: O texto do PDF está cortado, mas o gabarito é A. A opção A do PDF é "Soldado Nível III, Governador do Estado")
+            },
+            {
+                id: "Questão 3 (Setor Pessoal)",
+                question: "É o período de afastamento total do serviço, concedido ao servidor cuja movimentação implique obrigatoriamente mudança de localidade é disponibilizado no momento do desligamento, pelo comandante do OCBM de origem, da qual o servidor foi transferido. Qual afastamento é este?",
+                options: [
+                    "Licença Gestante;",
+                    "Licença para Tratar de Interesses Particulares",
+                    "Licença Tratamento Saúde;",
+                    "Licença Instalação;",
+                    "Trânsito;"
+                ],
+                correct: 4 // Gabarito: E
+            },
+            {
+                id: "Questão 4 (Setor Pessoal)",
+                question: "Qual a Instrução Reguladora que regula os procedimentos a serem adotados por ocasião do Estágio Probatório, Declaração de Estabilidade e Licenciamento do Serviço Ativo dos Militares Estaduais de Carreira do Corpo de Bombeiros Militar. Assinale a alternativa correta:",
+                options: [
+                    "INSTRUÇÃO REGULADORA n. 002/Adm/RH-21",
+                    "INSTRUÇÃO REGULADORA n. 002/Adm/RH-20",
+                    "INSTRUÇÃO REGULADORA n. 003/Adm/RH-20",
+                    "INSTRUÇÃO REGULADORA n. 002/Adm/RH-23",
+                    "INSTRUÇÃO REGULADORA n. 001/Adm/RH-20"
+                ],
+                correct: 1 // Gabarito: B
+            },
+            {
+                id: "Questão 5 (Setor Pessoal)",
+                question: "As ________ são afastamentos ________ do serviço, concedidos anual e obrigatoriamente aos servidores militares, para seu descanso, e durante elas persistirá o direito a todas as vantagens inerentes ao cargo, como se o servidor estivesse em serviço; logo, o período de ________ conta como tempo de serviço. Elas terão a duração de ________ dias por ano, e a regulamentação específica de sua concessão caberá ao Comandante-Geral do CBMRS. A requerimento do servidor e havendo concordância do respectivo comando, esses ________ dias podem ser divididos em até ________ períodos, de no mínimo ________ dias. Assinale a alternativa que preencha a lacuna corretamente.",
+                options: [
+                    "Férias, totais, férias, 30, 30, 3, 5.",
+                    "Férias, parciais, férias,30,30,3,5.",
+                    "Férias, totais, licença, 30,30,3,3.",
+                    "Licença, parciais, licença,6,6,2,3.",
+                    "Férias, totais, férias, 30, 30, 2, 5."
+                ],
+                correct: 0 // Gabarito: A
+            },
+            {
+                id: "Questão 6 (Setor Pessoal)",
+                question: "Sobre conceitos importantes constantes na IR que regulam os registros de efetividade e controle de lançamentos no sistema RHE, Enumere a 1 coluna de acordo com a 2, assinalando a letra correspondente a sequência correta. 1. Serviço ordinário 2. Serviço extraordinário 3. Serviço externo 4. Serviço Interno (2) SERVIÇO EXTRAORDINÁRIO... (4) SERVIÇO INTERNO... (1) SERVIÇO ORDINÁRIO... (3) SERVIÇO EXTERNO...",
+                options: [
+                    "3,1,4,2;",
+                    "1,2,3,4;",
+                    "2,4,3,1;",
+                    "2,4,1,3;",
+                    "2,3,2,1;"
+                ],
+                correct: 3 // Gabarito: D
+            },
+            {
+                id: "Questão 7 (Setor Pessoal)",
+                question: "É um documento administrativo-militar destinado ao esclarecimento da origem real das incapacidades físicas, temporais ou definitivas dos oficiais, praças, assemelhados e funcionários da Brigada Militar do Estado, provenientes de acidentes ou ferimentos recebidos em ato de serviço (leia-se acidente em serviço). Que documento é este?",
+                options: [
+                    "Mensagem expressa;",
+                    "Parte de serviço;",
+                    "Certidão de ocorrência;",
+                    "Atestado de origem;",
+                    "Oficio;"
+                ],
+                correct: 3 // Gabarito: D
+            },
+            {
+                id: "Questão 8 (Setor Pessoal)",
+                question: "É o afastamento total concedido ao Bombeiro Militar, estabelecida na legislação e com periodicidade variada, segundo o seu ciclo de serviço e conforme o planejamento dos Comandantes de OBM, desde que o beneficiado não tenha sofrido afastamento do serviço, no período aquisitivo, por motivo diverso (falta, dispensa médica, etc.), quando se inicia nova contagem. Este conceito é relativo a:",
+                options: [
+                    "Folga Compensatória;",
+                    "Folga;",
+                    "Descanso ou Intervalo de Descanso;",
+                    "Ciclo de Serviço;",
+                    "Escala Especial;"
+                ],
+                correct: 1 // Gabarito: B
+            },
+            {
+                id: "Questão 9 (Setor Pessoal)",
+                question: "Sobre o conceito de Acidente em Serviço pode ser conceituado como o evento ________ e ________ o qual acontece de forma repentina, causando danos (material ou pessoal), estando relacionado, de alguma forma, às atividades ________.",
+                options: [
+                    "combinado, esperado, ócio;",
+                    "casual, inesperado, laborais;",
+                    "calculado, inesperado e laborais;",
+                    "casual, previsível, laborais;",
+                    "calculado, previsível, lazer"
+                ],
+                correct: 1 // Gabarito: B
+            },
+            {
+                id: "Questão 10 (Setor Pessoal)",
+                question: "Sobre o conceito de recursos humanos, assinale a alternativa correta:",
+                options: [
+                    "conjunto de colaboradores de uma organização, pode se referir também ao ramo da Administração que desenvolve ações como objetivo de integrar o trabalhador no contexto da organização, aumentando sua produtividade e efetividade dos funcionários, com fins de melhorar a efetividade organizacional.",
+                    "conjunto de colaboradores de uma organização, não podendo se referir ao ramo da Administração que desenvolve ações com o objetivo de integrar o trabalhador no contexto da organização, aumentando sua produtividade e efetividade dos funcionários, com fins de melhorar a efetividade organizacional.",
+                    "conjunto de colaboradores de uma organização, pode se referir também ao ramo da Administração que desenvolve ações como objetivo de não integrar o trabalhador no contexto da organização, aumentando sua produtividade e efetividade dos funcionários, com fins de melhorar a efetividade organizacional.",
+                    "conjunto de colaboradores de uma organização, pode se referir também ao ramo da Administração que desenvolve ações como objetivo de integrar o trabalhador no contexto da organização, diminuído sua produtividade e efetividade dos funcionários, com fins de melhorar a efetividade organizacional.",
+                    "conjunto de colaboradores que não fazem parte de uma organização, pode se referir também ao ramo da Administração que desenvolve ações com o objetivo de integrar o trabalhador no contexto da organização, aumentando sua produtividade e efetividade dos funcionários, com fins de melhorar a efetividade organizacional."
+                ],
+                correct: 0 // Gabarito: A (Note: A opção D no PDF é diferente da minha opção D, mas a A é a correta e idêntica)
+            },
+            {
+                id: "QUESTÃO 11 (Setor Pessoal)",
+                question: "Regula os procedimentos a serem adotados no Corpo de Bombeiros Militar relativo à elaboração, execução e controle das escalas de serviço ordinário, registros de efetividade, controles e lançamentos no sistema RHE, e para os pagamentos de etapas de alimentação e de gratificação por exercício de serviço extraordinário (GSE hora-extra) aos Bombeiros Militares, trata-se de qual IR:",
+                options: [
+                    "INSTRUÇÃO REGULADORA N° 001/ADM/EXC-20;",
+                    "INSTRUÇÃO REGULADORA N° 002/ADM/EXC-20;",
+                    "INSTRUÇÃO REGULADORA N° 003/ADM/EXC-23;",
+                    "INSTRUÇÃO REGULADORA N° 002/ADM/EXC-23;",
+                    "INSTRUÇÃO REGULADORA N° 003/ADM/EXC-20;"
+                ],
+                correct: 4 // Gabarito: E
+            },
+            {
+                id: "QUESTÃO 12 (Setor Pessoal)",
+                question: "É o afastamento que poderá ser solicitado dentro de seis meses, contados da data da apresentação no OPM/OCBM de destino. O período será remunerado e computado como tempo de efetivo exercício para todos os efeitos legais. Qual afastamento é este?",
+                options: [
+                    "LTIP- Licença para Tratar de Interesses Particulares;",
+                    "LIN- Licença Instalação;",
+                    "LTS- Licença Tratamento Saúde;",
+                    "RSP-Recompensa por serviços prestados;",
+                    "LC- Licença Capacitação"
+                ],
+                correct: 1 // Gabarito: B
+            },
+            {
+                id: "QUESTÃO 13 (Setor Pessoal)",
+                question: "Este afastamento será de até 8 (oito) dias consecutivos e concedido desde que solicitado pelo servidor com antecipação à data do evento. O período será remunerado e computado como tempo de efetivo exercício para todos os efeitos legais. Qual afastamento é este?",
+                options: [
+                    "Licença Núpcias (Licença Gala/LGL);",
+                    "Licença Luto (Licença Nojo/LNJ);",
+                    "Licença Ferimento em Ação (LFA);",
+                    "Licença Gestante (LGE);",
+                    "Licença Instalação (LIN);"
+                ],
+                correct: 0 // Gabarito: A
+            },
+            {
+                id: "QUESTÃO 14 (Setor Pessoal)",
+                question: "Sobre a Progressão na Carreira, Os Soldados PM - 1.ª Classe ativos e inativos, na data de entrada em vigor da Lei Complementar n° 15.454, de 17 de fevereiro de 2020, foram reenquadrados sem Níveis. Enumere a 1 coluna de acordo com a 2, assinalando a letra correspondente a sequência correta. 1-Nível I 2-Nível II 3-Nível III ()Os Soldados que tinham entre 10 (dez) e 20 (vinte) anos incompletos de carreira... () Os Soldados que tinham menos de 10 (dez) anos de carreira... () Os Soldados que tinham 20 (vinte) anos ou mais de carreira completos...",
+                options: [
+                    "2,1,3",
+                    "1,2,3",
+                    "3,2,1",
+                    "2,3,1",
+                    "1,3,2"
+                ],
+                correct: 3 // Gabarito: D
+            },
+            {
+                id: "QUESTÃO 15 (Setor Pessoal)",
+                question: "Sistema de Recursos Humanos do Estado (RHE): ... Sobre este sistema, no que se refere o conceito de SETOR:",
+                options: [
+                    "é uma representação silábica do órgão onde o servidor está classificado ou lotado, para fins do sistema RHE;",
+                    "é uma representação artística do órgão onde o servidores tá classificado ou lotado, para fins do sistema RHE;",
+                    "é uma representação mental do órgão onde o servidor está classificado ou lotado, para fins do sistema RHE;",
+                    "é uma representação numérica do órgão onde o servidor está classificado ou lotado, para fins do sistema RHE;",
+                    "é uma representação teatral do órgão onde o servidor está classificado ou lotado, para fins do sistema RHE;"
+                ],
+                correct: 3 // Gabarito: D
+            },
+            // 2.B Setor Logística
+            {
+                id: "Questão 1 (Setor Logística)",
+                question: "Segundo a Lei 14.133 e o Caderno Temático de Noções de Logística e Patrimônio, analise as seguintes afirmativas e julgue como verdadeira ou falsa: () O Cadastro Informativo - CADIN/RS... () O Cadastro de Fornecedores Impedidos de Licitar e Contratar... () Ata de registro de preços...",
+                options: [
+                    "V, F, V",
+                    "V, V, V",
+                    "F, V, V",
+                    "F, F, F",
+                    "V, V, F"
+                ],
+                correct: 1 // Gabarito: B
+            },
+            {
+                id: "Questão 2 (Setor Logística)",
+                question: "Conforme o Caderno Temático de Noções de Logística e Patrimônio, analise as seguintes afirmativas, julgue como verdadeiro ou falso e após assinale a alternativa correta: () O objetivo do processo licitatório... () Vinculação ao instrumento convocatório... () Julgamento objetivo...",
+                options: [
+                    "F, V, V",
+                    "V, V, F",
+                    "F, F, F",
+                    "V, V, V",
+                    "V, F, V"
+                ],
+                correct: 3 // Gabarito: D
+            },
+            {
+                id: "Questão 3 (Setor Logística)",
+                question: "Segundo a Lei 14.133 e o Caderno Temático de Noções de Logística e Patrimônio, analise se as seguintes hipóteses são casos de dispensa de licitação: () aquisição ou locação de imóvel... () treinamento e aperfeiçoamento de pessoal; () restauração de obras de arte...",
+                options: [
+                    "F, V, V",
+                    "V, V, V",
+                    "V, V, F",
+                    "V, F, V",
+                    "F, F, F"
+                ],
+                correct: 4 // Gabarito: E (PDF diz F,F,F - restauração é inexigibilidade, não dispensa)
+            },
+            {
+                id: "Questão 4 (Setor Logística)",
+                question: "Segundo a Lei 14.133 e o Caderno Temático de Noções de Logística e Patrimônio, analise as seguintes afirmativas e julgue como verdadeira ou falsa: () O sistema de registro de preços... () Licitação fracassada... () Licitação Deserta...",
+                options: [
+                    "V, V, F",
+                    "F, F, F",
+                    "V, F, V",
+                    "F, V, V",
+                    "V, V, V"
+                ],
+                correct: 4 // Gabarito: E
+            },
+            {
+                id: "Questão 5 (Setor Logística)",
+                question: "Conforme o Caderno Temático de Noções de Logística e Patrimônio, o julgamento das propostas será realizado de acordo com os seguintes critérios: I - menor preço; II- maior desconto; III - melhor técnica ou conteúdo artístico; IV - técnica e preço; V - maior lance, no caso de leilão; VI - maior retorno econômico.",
+                options: [
+                    "somente a assertiva III está incorreta",
+                    "todas assertivas estão corretas",
+                    "somente a assertiva I está incorreta",
+                    "somente a assertiva IV está incorreta",
+                    "somente a assertiva VI está incorreta"
+                ],
+                correct: 1 // Gabarito: B
+            },
+            {
+                id: "Questão 6 (Setor Logística)",
+                question: "Assinale a alternativa que corresponde ao seguinte conceito: a lei ________ compreenderá as metas e prioridades da administração pública federal, estabelecerá as diretrizes de política fiscal e respectivas metas, em consonância com trajetória sustentável da dívida pública, disporá sobre as alterações na legislação tributária e estabelecerá a política de aplicação das agências financeiras oficiais de fomento.",
+                options: [
+                    "de diretrizes orçamentárias",
+                    "orçamentária plurianual",
+                    "do plano anual",
+                    "do plano plurianual",
+                    "orçamentária anual"
+                ],
+                correct: 0 // Gabarito: A
+            },
+            {
+                id: "Questão 7 (Setor Logística)",
+                question: "Segundo a Lei 14.133 e o Caderno Temático de Noções de Logística e Patrimônio, analise as seguintes afirmativas sobre os contratos administrativos e julgue como verdadeira ou falsa: () Os contratos administrativos... () O contrato deve ser cumprido... () Durante a execução...",
+                options: [
+                    "V, F, V",
+                    "V, V, F",
+                    "V, V, V",
+                    "F, F, F",
+                    "F, V, V"
+                ],
+                correct: 2 // Gabarito: C
+            },
+            {
+                id: "Questão 8 (Setor Logística)",
+                question: "Segundo a Lei 14.133 e o Caderno Temático de Noções de Logística e Patrimônio, serão aplicadas ao responsável pelas infrações administrativas as seguintes sanções: I - advertência; II - multa; III - impedimento de licitar e contratar; IV - declaração de inidoneidade para licitar ou contratar.",
+                options: [
+                    "somente a assertiva I está incorreta",
+                    "somente a assertiva IV está incorreta",
+                    "somente a assertiva II está incorreta",
+                    "todas assertivas estão corretas",
+                    "somente a assertiva III está incorreta"
+                ],
+                correct: 3 // Gabarito: D
+            },
+            {
+                id: "Questão 9 (Setor Logística)",
+                question: "Segundo o Caderno Temático de Noções de Logística e Patrimônio, assinale a alternativa incorreta referente as novidades trazidas pela nova Lei de Licitação, Lei 14.133/2021:",
+                options: [
+                    "Os atos serão preferencialmente digitais, de forma a permitir que sejam produzidos, comunicados, armazenados e validados por meio eletrônico.",
+                    "O processo de licitação observará as seguintes fases, em sequência: I - preparatória; II - de divulgação do edital de licitação; III - de habilitação; IV - de julgamento; V - de apresentação de propostas e lances, quando for o caso; VI - recursal; VII - de homologação.",
+                    "Aumenta os limites de dispensa de licitação em função do valor.",
+                    "Uma das principais mudanças é que agora as modalidades são definidas pela natureza do objeto e não mais pelo valor estimado.",
+                    "Aumenta o prazo de contratações diretas no caso de emergência ou calamidade pública (de 180 dias para 1 ano)."
+                ],
+                correct: 1 // Gabarito: B
+            },
+            // 3. Operações em Defesa Civil SODC
+            {
+                id: "Questão 1 (Defesa Civil)",
+                question: "Marque V para as assertivas verdadeiras e F para as assertivas falsas utilizando referencial teórico da Portaria nº 083/CBMRS/2022. () São necessárias 200 horas para o Curso Básico = Proteção e Combate a Incêndio. () A emissão dos certificados dos CABs é de competência do Comandante do Batalhão... () A ABM é responsável pela supervisão e controle... () Para conduzir veículo de combate a incêndio o CAB necessita... () Apenas os CABs credenciados poderão realizar a capacitação...",
+                options: [
+                    "F, F, F, F e F",
+                    "F, F, F, V e F",
+                    "F, F, V, V e V",
+                    "V, F, F, V e F",
+                    "V, V, F, F e V"
+                ],
+                correct: 2 // Gabarito: C
+            },
+            {
+                id: "Questão 2 (Defesa Civil)",
+                question: "Marque V para as assertivas verdadeiras e F para as assertivas falsas, conforme a IT n° 06.2/AODC-GCG/2019. () As escalas dos Civis Auxiliares de Bombeiros deverão obedecer a proporção mínima... () A aplicação da presente Instrução Técnica se aplica aos Serviços Civis e Auxiliares... () A Autorização para Desempenho de Atividade Auxiliar (ADAA) será expedida pelo Comando... () Os CABs poderão dispor de graus hierárquicos. () Operador COBOM é uma das funções recomendadas.",
+                options: [
+                    "F, F, F, F e F",
+                    "V, V, F, F e V",
+                    "V, F, F, V e F",
+                    "V, V, F, V e V",
+                    "F, F, F, V e F"
+                ],
+                correct: 3 // Gabarito: D
+            },
+            {
+                id: "Questão 3 (Defesa Civil)",
+                question: "Uma Guarnição de Serviço foi acionada para efetuar buscas a uma pessoa desaparecida... Conforme a norma que regula... quais os critérios que deverão ser adotados para que ocorra o encerramento ou a suspensão das buscas. I - Localização e resgate das vítimas II - Surgimento de evidência... III- Certificação que todas as áreas que ainda não foram delimitadas... IV- O Comandante de Guarnição poderá retornar...",
+                options: [
+                    "Apenas a I e a II",
+                    "Apenas a I, II e III estão corretas",
+                    "Apenas a I",
+                    "Apenas a III e a IV estão corretas",
+                    "Todas as assertivas estão erradas"
+                ],
+                correct: 0 // Gabarito: A
+            },
+            {
+                id: "Questão 4 (Defesa Civil)",
+                question: "O 2° Sgt QPBM Tício recebe em seu quartel a visita de um estudante de medicina interessado em realizar uma pesquisa que envolve os militares do quartel sob o seu comando. Qual a NOTA DE INSTRUÇÃO servirá de base para o Graduado informar o estudante sobre os procedimentos a serem adotados junto ao CBMRS:",
+                options: [
+                    "NOTA DE INSTRUÇÃO 3.3/EMBM/2018",
+                    "NOTA DE INSTRUÇÃO 001/2018-GCG/CBMRS",
+                    "NOTA DE INSTRUÇÃO 3.9/2021-GCG/CBMRS",
+                    "NOTA DE INSTRUÇÃO 1.8/EMBM/2021",
+                    "NOTA DE INSTRUÇÃO 3.4/EMBM/2019"
+                ],
+                correct: 4 // Gabarito: E
+            },
+            {
+                id: "Questão 5 (Defesa Civil)",
+                question: "O Batalhão Reserva do CBMRS tem a finalidade de apoiar as ações operacionais do CBMRS quando da necessidade de complemento aos efetivos locais nas atividades de: Marque a alternativa correta utilizando a previsão legal da Portaria nº 08/CBMRS/2021. I - Prevenção II - Resgates III - Proteção e Combate a Incêndios IV- Salvamento Terrestre",
+                options: [
+                    "Apenas I e III",
+                    "Apenas III e IV",
+                    "Todas as alternativas estão corretas",
+                    "Apenas I e II",
+                    "Todas as alternativas estão erradas"
+                ],
+                correct: 0 // Gabarito: A
+            },
+            {
+                id: "Questão 6 (Defesa Civil)",
+                question: "Preencha as lacunas: Nos Municípios com população até ________ habitantes, o Corpo de Bombeiros Militar poderá, através de ________ com o ________, instalar ________ visando atender as normas.",
+                options: [
+                    "19.999, termo de cooperação, câmara de vereadores, Escritórios de Prevenção (EPPCI)",
+                    "20.000, termo de cooperação, câmara de vereadores, Assessorias Técnicas de Prevenção de Incêndios",
+                    "10.000, convênio, executivo municipal, Escritórios de Prevenção (EPPCI)",
+                    "15.000, convênio, executivo municipal, Escritórios de Prevenção (EPPCI)",
+                    "10.000, termo de cooperação, câmara de vereadores, Assessorias Técnicas de Prevenção de Incêndios"
+                ],
+                correct: 3 // Gabarito: D
+            },
+            {
+                id: "Questão 7 (Defesa Civil)",
+                question: "Já a Portaria n° 09/CBMRS/2023 institui o índice de ________ como referencial técnico-científico para nortear o planejamento estratégico do CBMRS quanto a sua articulação operacional. Marque a alternativa incorreta, acerca dos indicadores para a composição do algoritmo de análise de multicritério e seus respectivos pesos:",
+                options: [
+                    "Regiões de Influências das Cidades",
+                    "População Municipal",
+                    "Distância Intermunicipal",
+                    "Volume de despachos operacionais",
+                    "Volume de atendimento de ocorrências"
+                ],
+                correct: 4 // Gabarito: E
+            },
+            {
+                id: "Questão 8 (Defesa Civil)",
+                question: "Complete as lacunas, utilizando o referencial teórico disponibilizado na Lição 4. São fontes de informação técnica utilizadas pelo CBMRS formatadas por outras instituições do Governo. São elas: I- Estudo Sobre Ocorrências e Desastres Naturais no Rio Grande do Sul II - Estudo Sobre os Desastres Naturais no Rio Grande do Sul e os Eventos Climáticos III - Caderno de Ações Integradas e Colaboração na Gestão de Riscos IV - Caderno Técnico de Gestão Integrada de Riscos e Desastres. Marque a alternativa correta.",
+                options: [
+                    "Apenas I, II e III",
+                    "Apenas I, III e IV",
+                    "Todas as alternativas estão erradas",
+                    "Apenas I e IV",
+                    "Todas as alternativas estão corretas"
+                ],
+                correct: 3 // Gabarito: D
+            },
+            {
+                id: "Questão 9 (Defesa Civil)",
+                question: "Se houver Civil Auxiliar de Bombeiro que exerça a condução do veículo de emergência que integre a frota do Corpo de Bombeiros Militar, este deverá atender todas as previsões do CBMRS e do Código de Trânsito Brasileiro e demais regulamentações do CONTRAN, para a condução e operação da bomba de incêndio e de outros equipamentos acoplados ao veículo.",
+                options: [
+                    "A afirmativa está prevista nas Portarias nº 05.2/AODC-GCG/2019 e 07/AODC-GCG/2020",
+                    "A afirmativa é falsa",
+                    "A afirmativa está prevista nas Portarias nº 01/CBMRS/2019 e n° 05.2 e 06.2/AODC-GCG/2019",
+                    "A afirmativa está prevista apenas na Portaria nº 05.2/AODC-GCG/2019",
+                    "A afirmativa está prevista nas Portarias no 05.2 e 06.2/AODC-GCG/2019"
+                ],
+                correct: 0 // Gabarito: A
+            },
+            {
+                id: "Questão 10 (Defesa Civil)",
+                question: "Atualmente existem 16 (dezesseis) Câmaras Técnicas operando no CBMRS, as quais são compostas por militares designados pelos seus respectivos comandos, dentre as Câmaras Técnicas descritas infra, marque a alternativa errada.",
+                options: [
+                    "Salvamento Aquático",
+                    "Mergulho",
+                    "Vexilologia",
+                    "Salvamento Terrestre",
+                    "Comunicação Social"
+                ],
+                correct: 3 // Gabarito: D
+            },
+            {
+                id: "Questão 11 (Defesa Civil)",
+                question: "Com relação a Formatura Geral, marque a alternativa errada.",
+                options: [
+                    "possui o procedimento de leitura de elogios por ação de Oficiais e Praças, em serviço",
+                    "está prevista no Art. 79 do CBMRS",
+                    "possui o procedimento de leitura de assuntos do interesse do OBM",
+                    "é a reunião de todo o efetivo disponível do OBM em forma",
+                    "excetuam-se da Formatura Geral os Oficiais e Praças que encontram-se de serviço"
+                ],
+                correct: 1 // Gabarito: B
+            },
+            {
+                id: "Questão 12 (Defesa Civil)",
+                question: "Os relatórios operacionais são baseados no Sistema de Emergência E193, Sistema de Controle de Efetivo, Planilha de Controle de LAA, Sistema de Controle de Viaturas e Portaria N° 06/CBMRS/2018. Analise as assertivas abaixo com relação aos relatórios e. I- Relatório do Comando Geral II - Efetivo discriminado por Bombeiros Militares ativos e inativos III- Estatísticas com comparativo de ocorrências IV - Relatório do Departamento de Administração. Marque a alternativa correta.",
+                options: [
+                    "Apenas II, III e IV",
+                    "Todas as alternativas estão corretas",
+                    "Apenas II e IV",
+                    "Apenas I e II",
+                    "Apenas I e III"
+                ],
+                correct: 4 // Gabarito: E
+            },
+            {
+                id: "Questão 13 (Defesa Civil)",
+                question: "Analise as ilações abaixo e associe com a respectiva Ordem de Operações (OOP). - Convocar, de ordem do Subcomandante-Geral, guarnições especializadas... - Constatada a possibilidade de emprego pelo Chefe de Guarnição... - Quando solicitado pelo Cmt do Batalhão, providenciar o reforço de Guarnição... - Deverão ser utilizados todos os mecanismos em caráter prioritário...",
+                options: [
+                    "OOp nº 05.5, OOp nº 04.3, OOp n° 05.1, OOp n° 06.1",
+                    "OOp n° 04.5, OOp n° 04.2, OOp nº 05.1, OOp nº 06.1",
+                    "OOp n° 03.5, OOp nº 04.2, OOp n° 05, OOp n° 06.2",
+                    "OOp nº 03.1, OOp n° 03.4, OOp nº 04.1, OOp nº 05.2",
+                    "OOp nº 03.1, OOp nº 03.5, OOp n° 04, OOp n° 05.2"
+                ],
+                correct: 2 // Gabarito: C
+            },
+            {
+                id: "Questão 14 (Defesa Civil)",
+                question: "Qual a carga horária prevista na PORTARIA CBMRS n° 90, de 18 de julho de 2023 para a atividade física.",
+                options: [
+                    "3h semanais",
+                    "7h por mês",
+                    "3h por mês",
+                    "5h semanais",
+                    "1h por dia"
+                ],
+                correct: 0 // Gabarito: A
+            },
+            {
+                id: "Questão 15 (Defesa Civil)",
+                question: "Complete as lacunas, conforme disponibilizado no Caderno Temático da disciplina, previsto na PORTARIA N.º 016/CBMRS/2019. O (a) ________ é o modelo, a alma, a imagem do espírito que vibra no Órgão de Execução do CBM, por sua vez o(a) ________ destina-se a solenidade militar ou civil onde o CBM se faça representado. O(A) ________ indica a presença do Diretor no OBM e o(a) ________ é uma honraria destinada a enaltecer e homenagear ostensivamente os Órgãos de Execução do CBM e o(a) ________ é uma condecoração concedida a personalidades, órgãos e entidades públicas e privadas:",
+                options: [
+                    "Patrono, Brasão de Armas, Insígnia de Comando, Estandarte Institucional do CBMRS e Comenda",
+                    "Patrono, Estandarte Institucional do CBMRS, Insígnia de Comando, Brasão de Armas e Comenda",
+                    "Estandarte Institucional do CBMRS, Insígnia de Comando, Brasão de Armas, Comenda e Patrono",
+                    "Canção, Brasão de Armas, Estandarte Institucional, Comenda e Patrono",
+                    "Estandarte Institucional do CBMRS, Brasão de Armas, Insígnia de Comando, Comenda e Patrono"
+                ],
+                correct: 1 // Gabarito: B
+            },
+            {
+                id: "Questão 16 (Defesa Civil)",
+                question: "Utilize a IT N° 008/AODC-GCG para enumerar as questões abaixo, no que concerne às definições previstas. 1) Binômio de Pronto-Emprego 2) Binômio 3) Cinotécnico 4) Binômio Pronto-Emprego (4) Fração elementar composta por um cão de busca e um Cinotécnico com Certificação... (3) Fração elementar composta por um cão de busca e um Cinotécnico... (1) Fração elementar composta por um cão de busca e um Cinotécnico com certificação... (2) ME que disponha do curso de adestrador de cães...",
+                options: [
+                    "1, 4, 3 e 2",
+                    "2, 1, 3 e 4",
+                    "1, 2, 3 e 4",
+                    "4, 3, 1 e 2",
+                    "3, 4, 1 e 2"
+                ],
+                correct: 3 // Gabarito: D
+            },
+            {
+                id: "Questão 17 (Defesa Civil)",
+                question: "Conforme estudado na Lição 4, Espaço de Responsabilidade Territorial é a área geográfica de competência de:",
+                options: [
+                    "Comando Regional de Bombeiro Militar",
+                    "Assessoria de Defesa Civil",
+                    "Pelotão de Bombeiro Militar",
+                    "Grupo de Bombeiro Militar",
+                    "Batalhão de Bombeiro Militar"
+                ],
+                correct: 4 // Gabarito: E
+            },
+            {
+                id: "Questão 18 (Defesa Civil)",
+                question: "O Soldado Temporário Beltrano recepciona o Sr. Ciclano na sede do Pelotão, o referido cidadão traz consigo uma série de documentos e os apresenta para o 2º Sargento QPBM Cambraia que está respondendo pelo Comando em virtude do Comandante estar de férias. Conforme estudado nesta lição, qual atitude o 2º Sargento Cambraia, deverá tomar:",
+                options: [
+                    "Caberá recurso do Sr. Ciclano ao Comandante do Batalhão, na hipótese de indeferimento de concessão de ADAA",
+                    "O Sr. Ciclano deveria ter protocolado os documentos da SODC do Batalhão",
+                    "A juntada dos documentos de credenciamento deverá ser composta pela manifestação do Comandante de Pelotão",
+                    "O 2º Sargento Cambraia deverá arquivar os documentos até o retorno do Comandante do Pelotão",
+                    "O Chefe da SODC é o responsável pela juntada dos documentos e pela decisão da concessão da ADAA"
+                ],
+                correct: 2 // Gabarito: C
+            },
+            {
+                id: "Questão 19 (Defesa Civil)",
+                question: "A imagem (representada por texto: 'Rota da pessoa desaparecida' com '1/2 S' de cada lado, e outra com 'S' de cada lado) representa qual tipo de busca conforme a Instrução Técnica N° 10/AODC-GCG.",
+                options: [
+                    "Em paralelo",
+                    "Obliqua",
+                    "Na transversal",
+                    "Em contorno",
+                    "Longitudinal"
+                ],
+                correct: 4 // Gabarito: E
+            },
+            // 4. Administração Pública Aplicada a 2ª seção
+            {
+                id: "Questão 1 (2ª Seção)",
+                question: "Segundo a DNISP, o conceito de ________ trata-se do \"conjunto de medidas positivas, destinadas a detectar, identificar, avaliar, analisar e neutralizar as ações adversas de elementos, ou grupos de qualquer natureza, que atentem contra a Segurança Pública\". Indique a opção correta.",
+                options: [
+                    "Segurança Reativa",
+                    "Segurança ativa (SEGAT)",
+                    "Atividade velada",
+                    "Operações de Campo",
+                    "Segurança Patrimonial"
+                ],
+                correct: 1 // Gabarito: B
+            },
+            {
+                id: "Questão 2 (2ª Seção)",
+                question: "O ________ é o profissional de inteligência ou não, com atribuições de obter dados negados ou de criar facilidades para a execução de operações de inteligência. Indique a opção correta:",
+                options: [
+                    "Agente administrativo",
+                    "Agente",
+                    "Agente Operacional",
+                    "Comparsa",
+                    "infiltrado"
+                ],
+                correct: 1 // Gabarito: B
+            },
+            {
+                id: "Questão 3 (2ª Seção)",
+                question: "Conforme a disciplina de Inteligência de Segurança Pública no que tange a produção do conhecimento de inteligência pode se conceituar: conhecimento como o ________ que pode ser ________ por escrito ou oralmente pelo profissional de ISP, quando da utilização da Metodologia da Produção de Conhecimento (MPC) sobre dados e/ou conhecimentos anteriores. Assim, complete os espaços com as assertivas corretas.",
+                options: [
+                    "Resultado inicial / tácito",
+                    "Resultado final / expresso",
+                    "Resultado final / tácito",
+                    "Resultado final / explícito",
+                    "Resultado inicial / expresso"
+                ],
+                correct: 1 // Gabarito: B
+            },
+            {
+                id: "Questão 4 (2ª Seção)",
+                question: "Assim como a ABIN é o órgão central do SISBIN, a ________ foi considerada(o) o órgão central do Subsistema de Inteligência de Segurança Pública (SISP) após sua criação.",
+                options: [
+                    "Gabinete de Gestão Integrado",
+                    "Central de Análises de Dados da União",
+                    "Subsecretaria de Segurança do DF",
+                    "Secretaria Nacional de Segurança Pública",
+                    "Agência Nacional de Serviços Secretos"
+                ],
+                correct: 3 // Gabarito: D
+            },
+            {
+                id: "Questão 5 (2ª Seção)",
+                question: "Existem quatro fases da metodologia de produção do conhecimento, dentre elas temos o Processamento. São etapas que compõem essa fase, EXCETO:",
+                options: [
+                    "Avaliação",
+                    "Prazo",
+                    "Avaliação", // Nota: A opção 'C' é 'Avaliação' no PDF, mas parece um erro de digitação no original. O gabarito é B.
+                    "Interpretação",
+                    "Integração"
+                ],
+                correct: 1 // Gabarito: B ('Prazo' não é uma etapa do Processamento)
+            },
+            {
+                id: "Questão 6 (2ª Seção)",
+                question: "É a ação de busca que visa a colocar um profissional de inteligência de Segurança Pública junto ao alvo para a obtenção de um dado negado. Necessita de autorização judicial e é a mais perigosa de todas as ações de busca, necessitando de um planejamento, treinamento, preparação do agente, e acompanhamento. Indique a opção correta:",
+                options: [
+                    "Provocação",
+                    "Infiltração",
+                    "Entrevista",
+                    "Provocação", // Nota: 'Provocação' está duplicada no PDF.
+                    "Vigilância"
+                ],
+                correct: 1 // Gabarito: B
+            },
+            {
+                id: "Questão 7 (2ª Seção)",
+                question: "São princípios da Inteligência de segurança pública, EXCETO:",
+                options: [
+                    "Objetividade",
+                    "Controle",
+                    "Interação",
+                    "Integração",
+                    "Sigilo"
+                ],
+                correct: 3 // Gabarito: D
+            },
+            {
+                id: "Questão 8 (2ª Seção)",
+                question: "Sobre a atividade de inteligência de segurança pública (ISP), é correto afirmar, exceto:",
+                options: [
+                    "Importante instrumento do Estado, pois é por meio dela que governos podem e devem pautar-se nas suas ações decisórias, notadamente no tocante à defesa dos interesses da sociedade e do próprio Estado",
+                    "É o exercício permanente e sistemático de ações especializadas para identificar, avaliar e acompanhar ameaças reais ou potenciais na esfera de segurança pública",
+                    "Cabe o planejamento e execução de uma política de Segurança Pública e das ações para prever, prevenir, neutralizar e reprimir atos criminosos de qualquer natureza que atentem à ordem pública, à incolumidade das pessoas e do patrimônio",
+                    "É responsável por decretar estado de sítio, além do Estado de defesa",
+                    "É orientada essencialmente para produção e salvaguarda de conhecimentos necessários para subsidiar os tomadores de decisão"
+                ],
+                correct: 4 // Gabarito: E (O PDF tem um erro aqui, a opção D é a "exceto", mas o gabarito marca E. Irei seguir o gabarito E)
+            },
+            {
+                id: "Questão 9 (2ª Seção)",
+                question: "Compreende um conjunto de medidas voltadas para a detecção, identificação, avaliação e a neutralização das ações adversas de busca de dados ou conhecimentos sigilosos. Indique a opção correta:",
+                options: [
+                    "Contrainteligência",
+                    "Contra Terrorismo Sabotagem",
+                    "Sabotagem",
+                    "Contra Espionagem",
+                    "Contrapropaganda"
+                ],
+                correct: 3 // Gabarito: D
+            },
+            {
+                id: "Questão 10 (2ª Seção)",
+                question: "São todos os procedimentos realizados por uma Agência de Inteligência (AI), ostensiva ou sigilosamente, a fim de obter dados depositados em fontes disponíveis, sejam elas oriundas de indivíduos, órgãos públicos ou privados. Indique a opção correta:",
+                options: [
+                    "Ações de busca",
+                    "Ações de operação",
+                    "Ações administrativas",
+                    "Ações de pesquisa",
+                    "Ações de coleta"
+                ],
+                correct: 4 // Gabarito: E
+            },
+            {
+                id: "Questão 11 (2ª Seção)",
+                question: "A Contrainteligência se subdivide em três segmentos:",
+                options: [
+                    "Segurança Institucional, Segurança de Apoio e Segurança Ativa",
+                    "Segurança Orgânica, Segurança de Assuntos Internos e Segurança Reativa",
+                    "Segurança Orgânica, Segurança de Assuntos Internos e Segurança Ativa",
+                    "Segurança Corporativa, Segurança de Assuntos Internos e Segurança Ativa",
+                    "Segurança Organizacional, Segurança de Apoio e Segurança Reativa"
+                ],
+                correct: 2 // Gabarito: C
+            },
+            {
+                id: "Questão 12 (2ª Seção)",
+                question: "A atividade de Inteligência de Segurança Pública (ISP) é o exercício permanente e sistemático de ações especializadas para ________, ________ e ________ ameaças reais ou potenciais na esfera de Segurança Pública:",
+                options: [
+                    "identificar, ratificar e desenvolver",
+                    "identificar, ratificar e normatizar",
+                    "classificar, avaliar e prover",
+                    "prover, normatizar e desenvolver",
+                    "identificar, avaliar e acompanhar"
+                ],
+                correct: 4 // Gabarito: E
+            },
+            {
+                id: "Questão 13 (2ª Seção)",
+                question: "A metodologia de produção do conhecimento é definida, sinteticamente, como um processo formal e ordenado, no qual o conhecimento produzido é disponibilizado aos usuários. Assinale a alternativa que destaca as fases da MPC:",
+                options: [
+                    "Planejamento, Análise, Reunião e Difusão",
+                    "Análise, Produção, Processamento e Finalização",
+                    "Avaliação, Produção, Análise e Difusão",
+                    "Levantamento, Análise, Produção e Resultado",
+                    "Planejamento, Reunião, Processamento/Formalização e Difusão"
+                ],
+                correct: 4 // Gabarito: E
+            },
+            {
+                id: "Questão 14 (2ª Seção)",
+                question: "O seguinte conceito se refere a qual princípio da inteligência? \"Norteia a atividade de forma clara e concisa, planejando e executando ações com o mínimo de custos e riscos. Evitar planos complexos e linguagem não deve ser rebusca, prolixa ou erudita.\"",
+                options: [
+                    "Imparcialidade",
+                    "Oportunidade",
+                    "Amplitude",
+                    "Simplicidade",
+                    "Sigilo"
+                ],
+                correct: 3 // Gabarito: D
+            },
+            {
+                id: "Questão 15 (2ª Seção)",
+                question: "\"É toda informação coletada, organizada ou analisada para atender as demandas de um tomador de decisão qualquer\". O conceito acima refere-se a:",
+                options: [
+                    "Ideia Resposta",
+                    "Amplitude",
+                    "Conhecimento",
+                    "Estado da mente",
+                    "Inteligência"
+                ],
+                correct: 4 // Gabarito: E
+            },
+            {
+                id: "Questão 16 (2ª Seção)",
+                question: "\"Visa preservar o órgão, a atividade, seus integrantes e suas ações. É condição básica para evitar a divulgação de conhecimentos, informações e dados que possam colocar em risco a segurança da sociedade e/ou estado, bem como afetar a intimidade, a vida privada, a honra e a imagem de pessoas e instituições\". Este conceito, está relacionado a qual princípio da inteligência de segurança pública:",
+                options: [
+                    "Imparcialidade",
+                    "Discricionariedade",
+                    "Eficiência",
+                    "Oportunidade",
+                    "Sigilo"
+                ],
+                correct: 4 // Gabarito: E
+            },
+            {
+                id: "Questão 17 (2ª Seção)",
+                question: "Com o intuito de desmantelá-la, o agente infiltrado, que é um funcionário da polícia, falseando sua identidade, penetra no âmago da organização criminosa para ________. Indique a opção correta.",
+                options: [
+                    "Sabotar as ações",
+                    "Apropriar-se dos equipamentos",
+                    "Obter depoimentos",
+                    "Obter informações",
+                    "Confundir os criminosos"
+                ],
+                correct: 3 // Gabarito: D
+            },
+            {
+                id: "Questão 18 (2ª Seção)",
+                question: "A doutrina de ISP preconiza uma diferenciação dos tipos de conhecimentos produzidos. São tipos os presentes na opção:",
+                options: [
+                    "Informe, Informação, Apreciação, Estima",
+                    "Conforme, Informe, Depreciação, Estima",
+                    "Deforme, Informação, Apreciação, Estimativa",
+                    "Informe, Informação, Depreciação, Estimativa",
+                    "Informe, Informação, Apreciação, Estimativa"
+                ],
+                correct: 4 // Gabarito: E
+            },
+            {
+                id: "Questão 19 (2ª Seção)",
+                question: "A DNISP acrescenta que a diferenciação entre a atividade de inteligência policial judiciária e a investigação policial é, em regra, mais teórica do que prática, uma vez que ambas lidam, invariavelmente, com os mesmos objetivos. Dada a informação é correto afirmar, conforme os slides, que os objetos são:",
+                options: [
+                    "Infiltração, questão conexas e abuso de autoridade",
+                    "Crime, Criminosos, criminalidade e questões conexas..",
+                    "Crime, criminosos e questões conexas.",
+                    "Transgressão, crime, criminalidade e questões conexas.",
+                    "Transgressão, crime, criminosos e questões conexas."
+                ],
+                correct: 1 // Gabarito: B
+            },
+            {
+                id: "Questão 20 (2ª Seção)",
+                question: "A Metodologia da Produção do Conhecimento é definida, sinteticamente, como um processo formal e regular, no qual o conhecimento produzido é disponibilizado aos usuários, composto por quatro fases, quais sejam:",
+                options: [
+                    "gerenciamento, reunião de dados, procedimento, formalística e difusão",
+                    "administração, ajuste de dados, processamento, formalística e difusão",
+                    "planejamento, reunião de dados, processamento, formalização e difusão",
+                    "planejamento, ajuste de dados, gerenciamento, foram e fusão",
+                    "gerenciamento, reunião de informações, processamento, forma e fusão"
+                ],
+                correct: 2 // Gabarito: C
+            }
+        ];
+        // --- FIM: BANCO DE DADOS DAS QUESTÕES ---
+
+        // Seletores do DOM
+        const quizContainer = document.getElementById('quiz-container');
+        const resultsContainer = document.getElementById('results-container');
+        const questionNumberEl = document.getElementById('question-number');
+        const questionTextEl = document.getElementById('question-text');
+        const answerOptionsEl = document.getElementById('answer-options');
+        const nextButton = document.getElementById('next-button');
+        const restartButton = document.getElementById('restart-button');
+        const scoreEl = document.getElementById('score');
+        const progressEl = document.getElementById('progress');
+        const finalScoreEl = document.getElementById('final-score');
+        const finalPercentageEl = document.getElementById('final-percentage');
+
+        // Estado do Quiz
+        let currentQuestionIndex = 0;
+        let score = 0;
+        let answered = false;
+        const totalQuestions = quizData.length;
+
+        /**
+         * Inicia o quiz ou carrega a próxima questão
+         */
+        function loadQuestion() {
+            answered = false;
+            // Reseta classes do container de opções
+            answerOptionsEl.classList.remove('options-disabled');
+
+            // Pega a questão atual
+            const currentQuestion = quizData[currentQuestionIndex];
+
+            // Atualiza os textos
+            questionNumberEl.textContent = currentQuestion.id;
+            questionTextEl.textContent = currentQuestion.question;
+            progressEl.textContent = `Questão ${currentQuestionIndex + 1} de ${totalQuestions}`;
+            scoreEl.textContent = `Pontos: ${score}`;
+
+            // Limpa opções anteriores
+            answerOptionsEl.innerHTML = '';
+
+            // Cria e adiciona os botões de opção
+            currentQuestion.options.forEach((option, index) => {
+                const button = document.createElement('button');
+                button.textContent = option;
+                button.classList.add('option-btn', 'w-full', 'p-4', 'bg-red-200', 'text-gray-800', 'font-semibold', 'rounded-lg', 'shadow-sm', 'hover:bg-red-300', 'text-left', 'hover:border-red-500');
+                
+                // Adiciona o evento de clique
+                button.addEventListener('click', () => selectAnswer(index));
+                answerOptionsEl.appendChild(button);
+            });
+
+            // Esconde o botão "Próxima"
+            nextButton.style.display = 'none';
+        }
+
+        /**
+         * Chamado quando o usuário clica em uma opção
+         * @param {number} selectedIndex - O índice da opção selecionada
+         */
+        function selectAnswer(selectedIndex) {
+            // Impede múltiplas respostas
+            if (answered) return;
+            answered = true;
+
+            // Adiciona classe para desabilitar o hover nos outros botões
+            answerOptionsEl.classList.add('options-disabled');
+
+            const currentQuestion = quizData[currentQuestionIndex];
+            const correctIndex = currentQuestion.correct;
+            const optionButtons = answerOptionsEl.querySelectorAll('.option-btn');
+
+            // Desabilita todos os botões
+            optionButtons.forEach(btn => btn.disabled = true);
+
+            if (selectedIndex === correctIndex) {
+                // Resposta Correta
+                score++;
+                optionButtons[selectedIndex].classList.add('correct');
+            } else {
+                // Resposta Incorreta
+                optionButtons[selectedIndex].classList.add('incorrect');
+                // Mostra a correta
+                optionButtons[correctIndex].classList.add('show-correct');
+            }
+
+            // Atualiza pontuação e mostra botão "Próxima"
+            scoreEl.textContent = `Pontos: ${score}`;
+            nextButton.style.display = 'block';
+            nextButton.disabled = false; // Garante que o botão está habilitado
+
+            // Foco no botão "Próxima" para melhor UX
+            nextButton.focus();
+        }
+
+        /**
+         * Carrega a próxima questão ou mostra os resultados
+         */
+        function handleNextQuestion() {
+            currentQuestionIndex++;
+            if (currentQuestionIndex < totalQuestions) {
+                loadQuestion();
+            } else {
+                showResults();
+            }
+        }
+
+        /**
+         * Mostra a tela de resultados final
+         */
+        function showResults() {
+            quizContainer.style.display = 'none';
+            document.getElementById('quiz-footer').style.display = 'none';
+            resultsContainer.style.display = 'block';
+
+            const percentage = ((score / totalQuestions) * 100).toFixed(0);
+
+            finalScoreEl.textContent = `${score} / ${totalQuestions}`;
+            finalPercentageEl.textContent = `${percentage}% de acerto`;
+        }
+
+        /**
+         * Reinicia o quiz
+         */
+        function restartQuiz() {
+            currentQuestionIndex = 0;
+            score = 0;
+            
+            resultsContainer.style.display = 'none';
+            quizContainer.style.display = 'block';
+            document.getElementById('quiz-footer').style.display = 'block';
+
+            loadQuestion();
+        }
+
+        // --- Event Listeners ---
+        nextButton.addEventListener('click', handleNextQuestion);
+        restartButton.addEventListener('click', restartQuiz);
+
+        // --- Iniciar o Quiz ---
+        loadQuestion();
+
+    </script>
+</body>
+</html>
